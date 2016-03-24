@@ -30,3 +30,30 @@ func TestChall2(t *testing.T) {
 		t.Errorf("Expected %s and got %s", shouldBe, result)
 	}
 }
+
+func TestCountLetters(t *testing.T) {
+	result, keys := CountLetters("./fixtures/frankenstein.txt")
+	for _, k := range keys {
+		t.Log(k, result[k])
+	}
+}
+
+func TestLetterPercents(t *testing.T) {
+	result := LetterPercents("./fixtures/frankenstein.txt")
+	for k, v := range result {
+		t.Log(k, v)
+	}
+}
+
+func TestScoreString(t *testing.T) {
+	scoreThis := "AEIOU"
+	if result := ScoreString(scoreThis); result != 5 {
+		t.Errorf("Expected %d and got %d", 5, result)
+	}
+}
+
+func TestChall3(t *testing.T) {
+	input := "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
+	results := Chall3(input)
+	t.Logf("Winner is: %+v", results)
+}
