@@ -13,7 +13,6 @@ func TestChall1(t *testing.T) {
 	if result != shouldBe {
 		t.Errorf("Expected %s and got %s", shouldBe, result)
 	}
-
 }
 
 func TestChall2(t *testing.T) {
@@ -65,4 +64,24 @@ func TestChall4(t *testing.T) {
 	inputFile := "./fixtures/4.txt"
 	results := Chall4(inputFile)
 	t.Logf("Winner is: %+v", results)
+}
+
+func TestChall5(t *testing.T) {
+	toEncrypt := "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
+	key := "ICE"
+	shouldBe := "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
+	fillString := make([]byte, len([]byte(toEncrypt)))
+	fillString = filler(fillString, []byte(key))
+	result := hex.EncodeToString(Chall5(toEncrypt, key))
+
+	if string(result) != shouldBe {
+		t.Errorf("\n1: %s \n2: %s \nusing %q", shouldBe, result, fillString)
+	}
+}
+
+func TestHammingDist(t *testing.T) {
+	result := HammingDist([]byte("this is a test"), []byte("wokka wokka!!!"))
+	if result != 37 {
+		t.Error("Hamming Distance should be 37, but its", result)
+	}
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -76,9 +77,9 @@ func ScoreString(test string) (score int) {
 	return scoreRaw
 }
 
-func filler(arr []byte, with byte) []byte {
+func filler(arr []byte, with []byte) []byte {
 	for i := range arr {
-		arr[i] = with
+		arr[i] = with[i%len(with)] //repeat 'with' bytes
 	}
 	return arr
 }
@@ -98,7 +99,7 @@ func doDecrypt3(hexString string) []Decrypt {
 	scores := make([]Decrypt, 0)
 	for i := 0; i < 128; i++ {
 		tester := make([]byte, len(hexBytes))
-		tester = filler(tester, byte(i))
+		tester = filler(tester, []byte{byte(i)})
 		result, _ := XOR(hexBytes, tester)
 		score := ScoreString(string(result))
 		scores = append(scores, Decrypt{byte(i), result, score})
@@ -148,4 +149,28 @@ func Chall4(filename string) Decrypt {
 	sort.Sort(ByScore(lineDecodes))
 
 	return lineDecodes[len(lineDecodes)-1]
+}
+
+func Chall5(plaintext string, key string) []byte {
+	bytesString := []byte(plaintext)
+	keyXOR := make([]byte, len(bytesString))
+	keyXOR = filler(keyXOR, []byte(key))
+	result, _ := XOR(bytesString, keyXOR)
+	return result
+}
+
+func HammingDist(first []byte, second []byte) int {
+	diffs, _ := XOR(first, second)
+	byteStr := []string{}
+	for _, v := range diffs {
+		byteStr = append(byteStr, strconv.FormatInt(int64(v), 2))
+	}
+	looker := strings.Join(byteStr, "")
+	count := 0
+	for _, i := range looker {
+		if i == '1' {
+			count++
+		}
+	}
+	return count
 }
