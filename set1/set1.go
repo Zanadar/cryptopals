@@ -86,22 +86,22 @@ func filler(arr []byte, with byte) []byte {
 func doDecrypt3(hexString string) []Decrypt {
 	hexBytes, _ := hex.DecodeString(hexString)
 	// put all the btes for a-z, ' ', and A-Z in a slice
-	letters := make([]byte, 53)
-	for i := 65; i < 91; i++ {
-		letters = append(letters, byte(i))
-	}
-	for i := 97; i < 123; i++ {
-		letters = append(letters, byte(i))
-	}
-	letters = append(letters, byte(32))
+	// letters := make([]byte, 53)
+	// for i := 65; i < 91; i++ {
+	// letters = append(letters, byte(i))
+	// }
+	// for i := 97; i < 123; i++ {
+	// letters = append(letters, byte(i))
+	// }
+	// letters = append(letters, byte(32))
 
 	scores := make([]Decrypt, 0)
-	for _, v := range letters {
+	for i := 0; i < 128; i++ {
 		tester := make([]byte, len(hexBytes))
-		tester = filler(tester, v)
+		tester = filler(tester, byte(i))
 		result, _ := XOR(hexBytes, tester)
 		score := ScoreString(string(result))
-		scores = append(scores, Decrypt{v, result, score})
+		scores = append(scores, Decrypt{byte(i), result, score})
 	}
 	return scores
 }
@@ -124,10 +124,28 @@ func (s ByScore) Less(i, j int) bool { return s[i].Score < s[j].Score }
 
 func Chall3(hexString string) Decrypt {
 	results := doDecrypt3(hexString)
-	for _, result := range results {
-		fmt.Println(result)
-	}
+	// for _, result := range results {
+	// fmt.Println(result)
+	// }
 	sort.Sort(ByScore(results))
 
 	return results[len(results)-1]
+}
+
+func Chall4(filename string) Decrypt {
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Println("Error with file:", err)
+	}
+
+	var lineDecodes = make([]Decrypt, 0)
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := Chall3(scanner.Text())
+		lineDecodes = append(lineDecodes, line)
+	}
+	sort.Sort(ByScore(lineDecodes))
+
+	return lineDecodes[len(lineDecodes)-1]
 }
