@@ -2,6 +2,7 @@ package set1
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -181,27 +182,29 @@ type KeyResult struct {
 	normalHamming float64
 }
 
-func findKeySize(plaintext string) []KeyResult {
+func findKeySize(path string) []KeyResult {
+	file, _ := os.Open(path)
+	fInfo, _ := file.Stat()
+	fSize := fInfo.Size()
+
+	data := make([]byte, fSize)
+	_, _ = file.Read(data)
+
+	base64Bytes := make([]byte, len(data))
+	base64.StdEncoding.Decode(base64Bytes, data)
+
+	// scanner := bufio.NewReader(file)
+	defer file.Close()
 	results := make([]KeyResult, 0)
 	for j := 2; j < 41; j++ {
-		func(j int, path string) {
-			file, _ := os.Open(path)
-			scanner := bufio.NewReader(file)
-			defer file.Close()
-			firstBlock := make([]byte, 0)
-			secondBlock := make([]byte, 0)
-			for i := 0; i < j; i++ {
-				block, _ := scanner.ReadByte()
-				firstBlock = append(firstBlock, block)
-			}
-			for i := 0; i < j; i++ {
-				block, _ := scanner.ReadByte()
-				secondBlock = append(secondBlock, block)
-			}
+		func(j int, readMe []byte) {
+			readBlock := bytes.NewBuffer(readMe)
+			firstBlock := readBlock.Next(j)
+			secondBlock := readBlock.Next(j)
 			dist := float64(HammingDist(firstBlock, secondBlock)) / float64(j)
 			results = append(results, KeyResult{j, dist})
 			fmt.Println("Firstblock:", firstBlock, "secondBlock:", secondBlock)
-		}(j, plaintext)
+		}(j, base64Bytes)
 	}
 	return results
 }

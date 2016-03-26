@@ -87,6 +87,8 @@ func TestHammingDist(t *testing.T) {
 }
 
 func TestFindKey(t *testing.T) {
-	result := findKeySize("./fixtures/6.txt")
-	t.Log("Distance is", result)
+	results := findKeySize("./fixtures/6.txt")
+	for _, result := range results {
+		t.Log("Distance is", result)
+	}
 }
