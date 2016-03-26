@@ -85,3 +85,8 @@ func TestHammingDist(t *testing.T) {
 		t.Error("Hamming Distance should be 37, but its", result)
 	}
 }
+
+func TestFindKey(t *testing.T) {
+	result := findKeySize("./fixtures/6.txt")
+	t.Log("Distance is", result)
+}
