@@ -8,11 +8,38 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strconv"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 )
+
+// var charFreq = map[string]float64{
+// "A": 8.167,
+// "B": 1.492,
+// "C": 2.782,
+// "D": 4.253,
+// "E": 12.702,
+// "F": 2.228,
+// "G": 2.015,
+// "H": 6.094,
+// "I": 6.966,
+// "J": 0.153,
+// "K": 0.772,
+// "L": 4.025,
+// "M": 2.406,
+// "N": 6.749,
+// "O": 7.507,
+// "P": 1.929,
+// "Q": 0.095,
+// "R": 5.987,
+// "S": 6.327,
+// "T": 9.056,
+// "U": 2.758,
+// "V": 0.978,
+// "W": 2.360,
+// "X": 0.150,
+// "Y": 1.974,
+// "Z": 0.074,
+// }
 
 func Chall1(hexString string) (string, error) {
 	hexBytes, err := hex.DecodeString(hexString)
@@ -65,14 +92,12 @@ func LetterPercents(filename string) map[string]float64 {
 	return percents
 }
 
-func ScoreString(test string) (score int) {
-	against := "ETAOIN SHRDLU etaoin shrdlu"
-	scoreRaw := 0
+func ScoreString(test string) (score float64) {
+	against := "ETAOIN SHRDLUetaoinshrdlu"
+	scoreRaw := 0.0
 	for i := 0; i < len(test); i++ {
 		letter := string(test[i])
-		if strings.Contains(against, letter) {
-			scoreRaw++
-		}
+		scoreRaw += charFreq[letter]
 	}
 
 	return scoreRaw
@@ -85,23 +110,12 @@ func filler(arr []byte, with []byte) []byte {
 	return arr
 }
 
-func doDecrypt3(hexString string) []Decrypt {
-	hexBytes, _ := hex.DecodeString(hexString)
-	// put all the btes for a-z, ' ', and A-Z in a slice
-	// letters := make([]byte, 53)
-	// for i := 65; i < 91; i++ {
-	// letters = append(letters, byte(i))
-	// }
-	// for i := 97; i < 123; i++ {
-	// letters = append(letters, byte(i))
-	// }
-	// letters = append(letters, byte(32))
-
+func doDecrypt3(cypher []byte) []Decrypt {
 	scores := make([]Decrypt, 0)
-	for i := 0; i < 128; i++ {
-		tester := make([]byte, len(hexBytes))
+	for i := 0; i < 256; i++ {
+		tester := make([]byte, len(cypher))
 		tester = filler(tester, []byte{byte(i)})
-		result, _ := XOR(hexBytes, tester)
+		result, _ := XOR(cypher, tester)
 		score := ScoreString(string(result))
 		scores = append(scores, Decrypt{byte(i), result, score})
 	}
@@ -111,7 +125,7 @@ func doDecrypt3(hexString string) []Decrypt {
 type Decrypt struct {
 	Against byte
 	Result  []byte
-	Score   int
+	Score   float64
 }
 
 func (d Decrypt) String() string {
@@ -125,7 +139,9 @@ func (s ByScore) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s ByScore) Less(i, j int) bool { return s[i].Score < s[j].Score }
 
 func Chall3(hexString string) Decrypt {
-	results := doDecrypt3(hexString)
+	temp, _ := hex.DecodeString(hexString)
+	stringBytes := []byte(temp)
+	results := doDecrypt3(stringBytes)
 	// for _, result := range results {
 	// fmt.Println(result)
 	// }
@@ -163,14 +179,10 @@ func Chall5(plaintext string, key string) []byte {
 func HammingDist(first []byte, second []byte) int {
 	// This is a pretty janky implementation but it works...
 	diffs, _ := XOR(first, second)
-	byteStr := []string{}
-	for _, v := range diffs {
-		byteStr = append(byteStr, strconv.FormatInt(int64(v), 2))
-	}
-	looker := strings.Join(byteStr, "")
 	count := 0
-	for _, i := range looker {
-		if i == '1' {
+	for _, b := range diffs {
+		for b > 1 {
+			b &= b - 1
 			count++
 		}
 	}
@@ -182,29 +194,91 @@ type KeyResult struct {
 	normalHamming float64
 }
 
-func findKeySize(path string) []KeyResult {
+type ByDist []KeyResult
+
+func (d ByDist) Len() int           { return len(d) }
+func (d ByDist) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
+func (d ByDist) Less(i, j int) bool { return d[i].normalHamming < d[j].normalHamming }
+
+func DecodeBase64File(path string) []byte {
 	file, _ := os.Open(path)
 	fInfo, _ := file.Stat()
 	fSize := fInfo.Size()
-
+	decodeSize := base64.StdEncoding.DecodedLen(int(fSize))
 	data := make([]byte, fSize)
 	_, _ = file.Read(data)
-
-	base64Bytes := make([]byte, len(data))
+	base64Bytes := make([]byte, decodeSize)
 	base64.StdEncoding.Decode(base64Bytes, data)
-
-	// scanner := bufio.NewReader(file)
 	defer file.Close()
+	return base64Bytes
+}
+
+func FindKeySize(data []byte) []KeyResult {
 	results := make([]KeyResult, 0)
-	for j := 2; j < 41; j++ {
-		func(j int, readMe []byte) {
-			readBlock := bytes.NewBuffer(readMe)
-			firstBlock := readBlock.Next(j)
-			secondBlock := readBlock.Next(j)
-			dist := float64(HammingDist(firstBlock, secondBlock)) / float64(j)
-			results = append(results, KeyResult{j, dist})
-			fmt.Println("Firstblock:", firstBlock, "secondBlock:", secondBlock)
-		}(j, base64Bytes)
+	for j := 1; j < 41; j++ {
+		readBlock := bytes.NewBuffer(data)
+		firstBlock := readBlock.Next(j)
+		secondBlock := readBlock.Next(j)
+		thirdBlock := readBlock.Next(j)
+		fourhtBlock := readBlock.Next(j)
+		fifthBlock := readBlock.Next(j)
+		sixthBlock := readBlock.Next(j)
+		seventhBlock := readBlock.Next(j)
+		dists := make([]int, 6)
+		dists[0] = HammingDist(firstBlock, secondBlock)
+		dists[1] = HammingDist(secondBlock, thirdBlock)
+		dists[2] = HammingDist(thirdBlock, fourhtBlock)
+		dists[3] = HammingDist(fourhtBlock, fifthBlock)
+		dists[4] = HammingDist(fifthBlock, sixthBlock)
+		dists[5] = HammingDist(sixthBlock, seventhBlock)
+
+		normalAvgDist := 0.0
+		sum := 0.0
+
+		for _, v := range dists {
+			sum += float64(v)
+		}
+		sum /= 6
+		normalAvgDist = sum / float64(j)
+
+		results = append(results, KeyResult{j, normalAvgDist})
 	}
+	sort.Sort(ByDist(results))
 	return results
+}
+
+func TransposeBlocks(cypher []byte, keyLength int) [][]byte {
+	blocks := make([][]byte, keyLength)
+	for i, _ := range blocks {
+		blocks[i] = make([]byte, 0)
+	}
+	cypherBuf := bytes.NewBuffer(cypher)
+	for cypherBuf.Len() > 0 {
+		block := cypherBuf.Next(keyLength)
+		for i, v := range block {
+			blocks[i] = append(blocks[i], v)
+		}
+	}
+
+	return blocks
+}
+
+func CrackRepeatingXOR(cypher []byte, keyLength int) []byte {
+	blocks := TransposeBlocks(cypher, keyLength)
+	// read cyper in KeyLength blocks. For each block, append block[0] to blocks[0]..block[n] to blocks[n]
+	cracks := []Decrypt{}
+	for _, v := range blocks {
+		decrypt := doDecrypt3(v)
+		sort.Sort(ByScore(decrypt))
+		cracks = append(cracks, decrypt[len(decrypt)-1])
+	}
+	for _, crack := range cracks {
+		fmt.Print("\nScore:", crack.Score, "\n\n")
+		fmt.Println(crack)
+	}
+	key := []byte{}
+	for _, crack := range cracks {
+		key = append(key, crack.Against)
+	}
+	return key
 }
