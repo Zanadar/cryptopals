@@ -8,38 +8,40 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
-// var charFreq = map[string]float64{
-// "A": 8.167,
-// "B": 1.492,
-// "C": 2.782,
-// "D": 4.253,
-// "E": 12.702,
-// "F": 2.228,
-// "G": 2.015,
-// "H": 6.094,
-// "I": 6.966,
-// "J": 0.153,
-// "K": 0.772,
-// "L": 4.025,
-// "M": 2.406,
-// "N": 6.749,
-// "O": 7.507,
-// "P": 1.929,
-// "Q": 0.095,
-// "R": 5.987,
-// "S": 6.327,
-// "T": 9.056,
-// "U": 2.758,
-// "V": 0.978,
-// "W": 2.360,
-// "X": 0.150,
-// "Y": 1.974,
-// "Z": 0.074,
-// }
+var charFreq = map[string]float64{
+	"A": 8.167,
+	"B": 1.492,
+	"C": 2.782,
+	"D": 4.253,
+	"E": 12.702,
+	"F": 2.228,
+	"G": 2.015,
+	"H": 6.094,
+	"I": 6.966,
+	"J": 0.153,
+	"K": 0.772,
+	"L": 4.025,
+	"M": 2.406,
+	"N": 6.749,
+	"O": 7.507,
+	"P": 1.929,
+	"Q": 0.095,
+	"R": 5.987,
+	"S": 6.327,
+	"T": 9.056,
+	"U": 2.758,
+	"V": 0.978,
+	"W": 2.360,
+	"X": 0.150,
+	"Y": 1.974,
+	"Z": 0.074,
+	" ": 20.0,
+}
 
 func Chall1(hexString string) (string, error) {
 	hexBytes, err := hex.DecodeString(hexString)
@@ -92,14 +94,16 @@ func LetterPercents(filename string) map[string]float64 {
 	return percents
 }
 
-func ScoreString(test string) (score float64) {
-	against := "ETAOIN SHRDLUetaoinshrdlu"
+func ScoreString(test string) float64 {
 	scoreRaw := 0.0
 	for i := 0; i < len(test); i++ {
 		letter := string(test[i])
-		scoreRaw += charFreq[letter]
+		letter = strings.ToUpper(letter)
+		score, ok := charFreq[letter]
+		if ok {
+			scoreRaw += score
+		}
 	}
-
 	return scoreRaw
 }
 
@@ -272,10 +276,10 @@ func CrackRepeatingXOR(cypher []byte, keyLength int) []byte {
 		sort.Sort(ByScore(decrypt))
 		cracks = append(cracks, decrypt[len(decrypt)-1])
 	}
-	for _, crack := range cracks {
-		fmt.Print("\nScore:", crack.Score, "\n\n")
-		fmt.Println(crack)
-	}
+	// for _, crack := range cracks {
+	// fmt.Print("\nScore:", crack.Score, "\n\n")
+	// fmt.Println(crack)
+	// }
 	key := []byte{}
 	for _, crack := range cracks {
 		key = append(key, crack.Against)
